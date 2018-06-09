@@ -35,7 +35,27 @@ func Init() {
 }
 
 func index(resp http.ResponseWriter, req *http.Request) {
-	fmt.Fprintln(resp, "hello go!")
+	if req.Method != "GET" {
+		resp.WriteHeader(404)
+		return
+	}
+
+	path := req.URL.Path
+	if path == "/" {
+		resp.WriteHeader(404)
+		return
+	}
+
+	path = path[1:]
+	ret := redis_client.HGet("url", string(base62.Decode(path)-12345))
+	if ret.Err() != nil {
+		resp.WriteHeader(404)
+	} else {
+		origin_url := ret.Val()
+		log.Printf("[server] url, %s => %s", path, origin_url)
+		http.Redirect(resp, req, origin_url, 301)
+		// fmt.Fprintln(resp, ret.String())
+	}
 }
 
 func api_short(resp http.ResponseWriter, req *http.Request) {
