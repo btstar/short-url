@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-redis/redis"
+	base62 "github.com/pilu/go-base62"
 )
 
 var redis_client *redis.Client
@@ -60,8 +61,10 @@ func api_short(resp http.ResponseWriter, req *http.Request) {
 						log.Fatal("[server] failed to add record", ret.Err())
 						resp.WriteHeader(500)
 					} else {
-						// TODO: 把id编码构造url下发
-						fmt.Fprintln(resp, "id:", url_id)
+						// 把id编码构造url下发
+						// FIXME: 潜在的溢出，暂时不用管，64位系统上应该没有关系
+						short_id := base62.Encode(int(url_id + 12345))
+						fmt.Fprintf(resp, "https://lyly.ws/%s", short_id)
 					}
 				}
 			}
