@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"zhen.chen/short-url/server"
+	"github.com/czsilence/short-url/server"
 )
 
 func main() {
-	fmt.Println("hello world!")
-
+	// init short-url server
 	server.Init()
 }
