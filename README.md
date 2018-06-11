@@ -1,4 +1,9 @@
 # 短链接服务
+
+## 配置文件说明
+
+    TBD
+
 ## 集成到现有项目
 
     import "github.com/czsilence/short-url/server"
