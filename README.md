@@ -1,4 +1,7 @@
 # 短链接服务
+## 集成
+    需要项目权限
+    go get git.smartswarm.org:3000/zhen.chen/short-url.git
 
 ## 依赖
 
