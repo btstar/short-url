@@ -12,11 +12,18 @@ import (
 )
 
 var redis_client *redis.Client
+var config ServerConfig
 
-func Init() {
+func Init(cfg *ServerConfig) {
+
+	if cfg == nil {
+		cfg = DefaultServerConfig()
+	}
+	config = *cfg
+
 	fmt.Print("[server] init redis...")
 	redis_client = redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:16379",
+		Addr:     config.Redis,
 		Password: "",
 		DB:       0,
 	})
@@ -28,7 +35,7 @@ func Init() {
 
 	fmt.Print("OK\n")
 	fmt.Println("[server] start listening...")
-	err := http.ListenAndServe("0.0.0.0:9999", nil)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%d", config.Host, config.Port), nil)
 	if err != nil {
 		log.Fatal("http server start failed!", err)
 	}
@@ -84,7 +91,7 @@ func api_short(resp http.ResponseWriter, req *http.Request) {
 						// 把id编码构造url下发
 						// FIXME: 潜在的溢出，暂时不用管，64位系统上应该没有关系
 						short_id := base62.Encode(int(url_id + 12345))
-						fmt.Fprintf(resp, "https://lyly.ws/%s", short_id)
+						fmt.Fprint(resp, makeUrl(&short_id))
 					}
 				}
 			}
@@ -92,4 +99,9 @@ func api_short(resp http.ResponseWriter, req *http.Request) {
 	} else {
 		resp.WriteHeader(404)
 	}
+}
+
+// 构造url
+func makeUrl(id *string) string {
+	return fmt.Sprintf("%s/%s", config.Url, *id)
 }
