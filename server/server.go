@@ -30,8 +30,8 @@ func Init(cfg *ServerConfig) {
 	fmt.Print("OK\n")
 
 	fmt.Print("[server] init http...")
-	http.HandleFunc("/", index)
-	http.HandleFunc("/short", api_short)
+	http.HandleFunc(config.IndexPath, index)
+	http.HandleFunc(config.IndexPath+"short", api_short)
 
 	fmt.Print("OK\n")
 	fmt.Println("[server] start listening...")
@@ -47,13 +47,14 @@ func index(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	path := req.URL.Path
+	path := strings.Replace(req.URL.Path, config.IndexPath, "", 1)
+	fmt.Println(path, req.URL.Path)
 	if path == "/" {
 		resp.WriteHeader(404)
 		return
 	}
 
-	path = path[1:]
+	// path = path[1:]
 	ret := redis_client.HGet("url", string(base62.Decode(path)-12345))
 	if ret.Err() != nil {
 		resp.WriteHeader(404)
