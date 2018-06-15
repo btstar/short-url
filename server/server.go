@@ -31,7 +31,6 @@ func Init(cfg *ServerConfig) {
 
 	fmt.Print("[server] init http...")
 	http.HandleFunc(config.IndexPath, index)
-	http.HandleFunc(config.IndexPath+"short", api_short)
 
 	fmt.Print("OK\n")
 	fmt.Println("[server] start listening...")
@@ -42,6 +41,12 @@ func Init(cfg *ServerConfig) {
 }
 
 func index(resp http.ResponseWriter, req *http.Request) {
+	if req.Method == "PUT" {
+		// 生成短链接
+		api_short(resp, req)
+		return
+	}
+
 	if req.Method != "GET" {
 		resp.WriteHeader(404)
 		return

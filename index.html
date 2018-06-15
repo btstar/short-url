@@ -16,7 +16,11 @@
 <body>
     <div id="wrapper">
         <div><h2>生成短网址：</h2></div>
-        <div><em>curl -X PUT https://lyly.ws/short --data 原始url</em></div>
+        <div><em>
+            <script>
+                document.write('curl -X PUT https://' + location.host + ' --data 原始url');
+            </script>
+        </em></div>
     </div>
 </body>
 </html>
