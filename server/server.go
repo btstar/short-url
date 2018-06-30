@@ -1,6 +1,8 @@
 package server
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -60,7 +62,7 @@ func index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// path = path[1:]
-	ret := redis_client.HGet("url", string(base62.Decode(path)-12345))
+	ret := redis_client.HGet("url", fmt.Sprintf("%d", base62.Decode(path)-12345))
 	if ret.Err() != nil {
 		resp.WriteHeader(404)
 	} else {
@@ -77,27 +79,30 @@ func api_short(resp http.ResponseWriter, req *http.Request) {
 		result, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			resp.WriteHeader(500)
+		} else if origin_url := strings.TrimSpace(string(result)); len(origin_url) <= 0 {
+			log.Println("[server] bad url data", origin_url)
+			resp.WriteHeader(500)
 		} else {
-			origin_url := strings.TrimSpace(string(result))
-			if len(origin_url) <= 0 {
-				log.Fatal("[server] bad url data", origin_url)
-				resp.WriteHeader(500)
+			hash := getUrlHash(origin_url)
+
+			if url, ex := checkExist(hash); ex {
+				writeShortId(resp, url)
 			} else {
 				ret := redis_client.Incr("short_url_id")
 				if ret.Err() != nil {
-					log.Fatal("[server] failed to prepare record", ret.Err())
+					log.Println("[server] failed to prepare record", ret.Err())
 					resp.WriteHeader(500)
 				} else {
 					url_id := ret.Val()
 					ret := redis_client.HSet("url", string(url_id), origin_url)
 					if ret.Err() != nil {
-						log.Fatal("[server] failed to add record", ret.Err())
+						log.Println("[server] failed to add record", ret.Err())
 						resp.WriteHeader(500)
 					} else {
-						// 把id编码构造url下发
 						// FIXME: 潜在的溢出，暂时不用管，64位系统上应该没有关系
-						short_id := base62.Encode(int(url_id + 12345))
-						fmt.Fprint(resp, makeUrl(&short_id))
+						url := base62.Encode(int(url_id + 12345))
+						redis_client.HSet("origin_url", hash, url)
+						writeShortId(resp, url)
 					}
 				}
 			}
@@ -105,6 +110,28 @@ func api_short(resp http.ResponseWriter, req *http.Request) {
 	} else {
 		resp.WriteHeader(404)
 	}
+}
+
+func checkExist(hash string) (url string, ex bool) {
+	if ret := redis_client.HGet("origin_url", hash); ret.Err() != nil {
+		ex = false
+	} else if url = ret.Val(); len(url) <= 0 {
+		ex = false
+	} else {
+		ex = true
+	}
+	return
+}
+
+func getUrlHash(origin_url string) string {
+	ctx := md5.New()
+	ctx.Write([]byte(origin_url))
+	return hex.EncodeToString(ctx.Sum(nil))
+}
+
+// 把id编码构造url下发
+func writeShortId(resp http.ResponseWriter, url string) {
+	fmt.Fprint(resp, makeUrl(&url))
 }
 
 // 构造url
