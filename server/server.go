@@ -65,6 +65,7 @@ func index(resp http.ResponseWriter, req *http.Request) {
 	// path = path[1:]
 	ret := redis_client.HGet("url", strconv.Itoa(base62.Decode(path)-12345))
 	if ret.Err() != nil {
+		log.Println("[server] no url matched:", path)
 		resp.WriteHeader(404)
 	} else {
 		origin_url := ret.Val()
