@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/go-redis/redis"
@@ -63,7 +62,7 @@ func index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// path = path[1:]
-	ret := redis_client.HGet("url", strconv.Itoa(base62.Decode(path)-12345))
+	ret := redis_client.HGet("url", path)
 	if ret.Err() != nil {
 		log.Println("[server] no url matched:", path)
 		resp.WriteHeader(404)
@@ -95,13 +94,13 @@ func api_short(resp http.ResponseWriter, req *http.Request) {
 					resp.WriteHeader(500)
 				} else {
 					url_id := ret.Val()
-					ret := redis_client.HSet("url", string(url_id), origin_url)
+					url := base62.Encode(int(url_id + 12345))
+					ret := redis_client.HSet("url", url, origin_url)
 					if ret.Err() != nil {
 						log.Println("[server] failed to add record", ret.Err())
 						resp.WriteHeader(500)
 					} else {
 						// FIXME: 潜在的溢出，暂时不用管，64位系统上应该没有关系
-						url := base62.Encode(int(url_id + 12345))
 						redis_client.HSet("origin_url", hash, url)
 						writeShortId(resp, url)
 					}
