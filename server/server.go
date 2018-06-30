@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-redis/redis"
@@ -23,19 +24,19 @@ func Init(cfg *ServerConfig) {
 	}
 	config = *cfg
 
-	fmt.Print("[server] init redis...")
+	log.Print("[server] init redis...")
 	redis_client = redis.NewClient(&redis.Options{
 		Addr:     config.Redis,
 		Password: "",
 		DB:       0,
 	})
-	fmt.Print("OK\n")
+	log.Print("OK\n")
 
-	fmt.Print("[server] init http...")
+	log.Print("[server] init http...")
 	http.HandleFunc(config.IndexPath, index)
 
-	fmt.Print("OK\n")
-	fmt.Println("[server] start listening...")
+	log.Print("OK\n")
+	log.Println("[server] start listening...")
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", config.Host, config.Port), nil)
 	if err != nil {
 		log.Fatal("http server start failed!", err)
@@ -55,21 +56,20 @@ func index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	path := strings.Replace(req.URL.Path, config.IndexPath, "", 1)
-	fmt.Println(path, req.URL.Path)
+	log.Println("req:", path)
 	if path == "/" {
 		resp.WriteHeader(404)
 		return
 	}
 
 	// path = path[1:]
-	ret := redis_client.HGet("url", fmt.Sprintf("%d", base62.Decode(path)-12345))
+	ret := redis_client.HGet("url", strconv.Itoa(base62.Decode(path)-12345))
 	if ret.Err() != nil {
 		resp.WriteHeader(404)
 	} else {
 		origin_url := ret.Val()
 		log.Printf("[server] url, %s => %s", path, origin_url)
 		http.Redirect(resp, req, origin_url, 301)
-		// fmt.Fprintln(resp, ret.String())
 	}
 }
 
